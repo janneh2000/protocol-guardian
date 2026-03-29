@@ -1,0 +1,43 @@
+# Environment
+.env
+*.env
+
+# Node
+node_modules/
+artifacts/
+cache/
+typechain-types/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+guardian.log
+
+# Dashboard runtime files
+dashboard/events.json
+dashboard/last_report.json
+
+# Addresses (generated after deploy)
+addresses.json
+
+# ABIs (generated after compile)
+abi/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp

@@ -5,253 +5,322 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Protocol Guardian — Live Dashboard</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0e17; --surface: #111827; --surface2: #1a2235;
-    --border: rgba(255,255,255,0.07); --text: #e2e8f0; --muted: #64748b;
-    --red: #ef4444; --amber: #f59e0b; --green: #22c55e;
-    --blue: #3b82f6; --purple: #8b5cf6;
-    --red-bg: rgba(239,68,68,0.1); --amber-bg: rgba(245,158,11,0.1);
-    --green-bg: rgba(34,197,94,0.1);
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0e17;--surface:#111827;--surface2:#1a2235;
+    --border:rgba(255,255,255,0.07);--text:#e2e8f0;--muted:#64748b;
+    --red:#ef4444;--amber:#f59e0b;--green:#22c55e;--blue:#3b82f6;--purple:#8b5cf6;
+    --red-bg:rgba(239,68,68,0.12);--amber-bg:rgba(245,158,11,0.12);--green-bg:rgba(34,197,94,0.12);
+    --mono:'JetBrains Mono','Fira Code','Courier New',monospace;
   }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); }
-  .logo { display: flex; align-items: center; gap: 10px; }
-  .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-  .logo-text { font-size: 16px; font-weight: 600; }
-  .logo-sub { font-size: 11px; color: var(--muted); }
-  .status-badge { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; background: var(--green-bg); color: var(--green); font-size: 12px; font-weight: 500; }
-  .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(0.85)} }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 20px 24px; }
-  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-  .stat-value { font-size: 28px; font-weight: 700; }
-  .stat-value.red { color: var(--red); }
-  .stat-value.amber { color: var(--amber); }
-  .stat-value.green { color: var(--green); }
-  .stat-value.blue { color: var(--blue); }
-  main { display: grid; grid-template-columns: 1fr 380px; gap: 16px; padding: 0 24px 24px; }
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  .panel-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; justify-content: space-between; }
-  .panel-body { padding: 0; }
-  .event-list { list-style: none; }
-  .event { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
-  .event:hover { background: var(--surface2); }
-  .event:last-child { border-bottom: none; }
-  .event-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .event-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
-  .badge-pause { background: var(--red-bg); color: var(--red); }
-  .badge-alert { background: var(--amber-bg); color: var(--amber); }
-  .badge-ignore { background: rgba(100,116,139,0.15); color: var(--muted); }
-  .event-time { font-size: 11px; color: var(--muted); }
-  .event-attack { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
-  .event-rationale { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .confidence-bar { height: 3px; border-radius: 2px; background: var(--border); margin-top: 8px; overflow: hidden; }
-  .confidence-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
-  .report-panel { padding: 16px; }
-  .report-empty { text-align: center; color: var(--muted); padding: 40px 16px; font-size: 13px; }
-  .report-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .report-severity { display: inline-flex; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-bottom: 12px; }
-  .sev-critical { background: var(--red-bg); color: var(--red); }
-  .sev-high { background: var(--amber-bg); color: var(--amber); }
-  .report-section { margin-bottom: 14px; }
-  .report-section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-  .report-text { font-size: 12px; color: var(--text); line-height: 1.6; }
-  .report-list { list-style: none; }
-  .report-list li { font-size: 12px; color: var(--text); padding: 3px 0; display: flex; gap: 6px; }
-  .report-list li::before { content: "→"; color: var(--purple); flex-shrink: 0; }
-  .timeline-item { display: flex; gap: 10px; padding: 4px 0; }
-  .tl-num { width: 18px; height: 18px; border-radius: 50%; background: var(--purple); color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-  .tl-text { font-size: 12px; line-height: 1.5; }
-  .protected-amount { font-size: 22px; font-weight: 700; color: var(--green); }
-  code { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 11px; background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 3px; }
-  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--muted); text-align: center; gap: 8px; }
-  .empty-icon { font-size: 32px; opacity: 0.4; }
-  @media (max-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } main { grid-template-columns: 1fr; } }
+  body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .logo-name{font-size:15px;font-weight:600}
+  .logo-sub{font-size:11px;color:var(--muted);margin-top:1px}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+  .status-badge{display:flex;align-items:center;gap:7px;padding:5px 13px;border-radius:20px;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:500;border:1px solid rgba(34,197,94,0.2)}
+  .status-badge.error{background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,0.2)}
+  .status-badge.error .status-dot{background:var(--red);animation:none}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 24px 0}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .stat-value{font-size:26px;font-weight:700}
+  .stat-value.red{color:var(--red)}
+  .stat-value.amber{color:var(--amber)}
+  .stat-value.green{color:var(--green)}
+  .stat-value.blue{color:var(--blue)}
+  .stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+  .main{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:16px 24px 24px}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .panel-hdr{padding:13px 16px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;justify-content:space-between}
+  .panel-hdr span{font-weight:400;text-transform:none;font-size:11px}
+
+  .event-list{list-style:none}
+  .event{padding:13px 16px;border-bottom:1px solid var(--border);cursor:default;transition:background .12s}
+  .event:hover{background:var(--surface2)}
+  .event:last-child{border-bottom:none}
+  .event-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:8px}
+  .badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+  .badge-pause{background:var(--red-bg);color:var(--red)}
+  .badge-alert{background:var(--amber-bg);color:var(--amber)}
+  .badge-ignore{background:rgba(100,116,139,.15);color:var(--muted)}
+  .event-time{font-size:11px;color:var(--muted)}
+  .event-attack{font-size:13px;font-weight:500;margin-bottom:3px}
+  .event-rationale{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .conf-bar{height:2px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:8px;overflow:hidden}
+  .conf-fill{height:100%;border-radius:2px;transition:width .6s}
+  .event-meta{display:flex;gap:12px;margin-top:6px}
+  .event-meta-item{font-size:11px;color:var(--muted)}
+  .event-meta-item strong{color:var(--text)}
+
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted);text-align:center;gap:10px}
+  .empty-icon{font-size:36px;opacity:.3}
+  .empty-title{font-size:14px;color:var(--muted)}
+  .empty-sub{font-size:12px;opacity:.7}
+
+  .report-panel{padding:16px;height:100%;overflow-y:auto}
+  .report-empty{text-align:center;color:var(--muted);padding:40px 12px;font-size:13px}
+  .report-title{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text)}
+  .report-sev{display:inline-flex;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-bottom:14px;text-transform:uppercase}
+  .sev-critical{background:var(--red-bg);color:var(--red)}
+  .sev-high{background:var(--amber-bg);color:var(--amber)}
+  .report-section{margin-bottom:14px}
+  .report-section-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .report-text{font-size:12px;color:var(--text);line-height:1.6}
+  .report-list{list-style:none}
+  .report-list li{font-size:12px;color:var(--text);padding:3px 0;display:flex;gap:7px;line-height:1.5}
+  .report-list li::before{content:"→";color:var(--purple);flex-shrink:0}
+  .tl-item{display:flex;gap:9px;padding:3px 0}
+  .tl-num{width:18px;height:18px;border-radius:50%;background:var(--purple);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+  .tl-text{font-size:12px;line-height:1.5;color:var(--text)}
+  .protected-amt{font-size:22px;font-weight:700;color:var(--green)}
+  code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;word-break:break-all}
+
+  .conn-banner{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:12px 16px;margin:16px 24px 0;font-size:13px;color:var(--red);display:none}
+  .conn-banner.show{display:block}
+
+  @media(max-width:900px){.stats{grid-template-columns:1fr 1fr}.main{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+
 <header>
   <div class="logo">
     <div class="logo-icon">🛡</div>
     <div>
-      <div class="logo-text">Protocol Guardian</div>
-      <div class="logo-sub">AI-Powered DeFi Security Agent</div>
+      <div class="logo-name">Protocol Guardian</div>
+      <div class="logo-sub">AI-Powered DeFi Security — Sepolia Testnet</div>
     </div>
   </div>
-  <div class="status-badge">
-    <div class="pulse"></div>
-    <span id="status-text">Monitoring</span>
+  <div class="status-badge" id="status-badge">
+    <div class="status-dot"></div>
+    <span id="status-text">Connecting...</span>
   </div>
 </header>
 
-<div class="grid">
+<div class="conn-banner" id="conn-banner">
+  Supabase not configured — add SUPABASE_URL and SUPABASE_KEY to your environment variables and redeploy.
+</div>
+
+<div class="stats">
   <div class="stat">
     <div class="stat-label">Total events</div>
-    <div class="stat-value blue" id="stat-total">0</div>
+    <div class="stat-value blue" id="stat-total">—</div>
+    <div class="stat-sub">All time</div>
   </div>
   <div class="stat">
     <div class="stat-label">Pauses fired</div>
-    <div class="stat-value red" id="stat-pauses">0</div>
+    <div class="stat-value red" id="stat-pauses">—</div>
+    <div class="stat-sub">Protocols halted</div>
   </div>
   <div class="stat">
-    <div class="stat-label">Alerts</div>
-    <div class="stat-value amber" id="stat-alerts">0</div>
+    <div class="stat-label">Alerts raised</div>
+    <div class="stat-value amber" id="stat-alerts">—</div>
+    <div class="stat-sub">Under threshold</div>
   </div>
   <div class="stat">
     <div class="stat-label">Funds protected</div>
-    <div class="stat-value green" id="stat-protected">$0</div>
+    <div class="stat-value green" id="stat-protected">—</div>
+    <div class="stat-sub">Estimated USD</div>
   </div>
 </div>
 
-<main>
+<div class="main">
   <div class="panel">
-    <div class="panel-header">
+    <div class="panel-hdr">
       Live event stream
-      <span id="last-update" style="font-weight:400;text-transform:none;font-size:11px"></span>
+      <span id="last-update"></span>
     </div>
-    <div class="panel-body">
-      <ul class="event-list" id="event-list">
-        <div class="empty-state">
-          <div class="empty-icon">👁</div>
-          <div>Watching the mempool...</div>
-          <div style="font-size:11px">Run the attack simulator to trigger a detection</div>
-        </div>
-      </ul>
-    </div>
+    <ul class="event-list" id="event-list">
+      <div class="empty-state">
+        <div class="empty-icon">👁</div>
+        <div class="empty-title">Watching the blockchain...</div>
+        <div class="empty-sub">Run the attack simulator to trigger a detection</div>
+      </div>
+    </ul>
   </div>
 
   <div class="panel">
-    <div class="panel-header">Last incident report</div>
-    <div class="panel-body">
-      <div id="report-container" class="report-panel">
-        <div class="report-empty">No incidents yet.<br>A report will appear here when a pause fires.</div>
-      </div>
+    <div class="panel-hdr">Last incident report</div>
+    <div class="report-panel" id="report-container">
+      <div class="report-empty">No incidents yet.<br><br>A full AI-generated report will appear here when the agent fires a pause.</div>
     </div>
   </div>
-</main>
+</div>
 
 <script>
-let knownEvents = [];
-let lastReport = null;
+  const SUPABASE_URL  = "https://jibteyatwcimjcoevnap.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppYnRleWF0d2NpbWpjb2V2bmFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3OTg5MDEsImV4cCI6MjA5MDM3NDkwMX0.s9kckS0E2OBovRQf-rKMKWod5FE7gsKumYAAoZbnqUI";
 
-function formatTime(iso) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString();
-}
+  let lastEventCount = 0;
+  let lastReportId   = null;
+  let connected      = false;
 
-function confidenceColor(c) {
-  if (c >= 75) return '#ef4444';
-  if (c >= 40) return '#f59e0b';
-  return '#64748b';
-}
+  function setStatus(ok, text) {
+    const badge = document.getElementById("status-badge");
+    const label = document.getElementById("status-text");
+    badge.className = "status-badge" + (ok ? "" : " error");
+    label.textContent = text;
+    connected = ok;
+  }
 
-function renderEvents(events) {
-  const list = document.getElementById('event-list');
-  if (!events || events.length === 0) return;
+  function confColor(c) {
+    if (c >= 75) return "#ef4444";
+    if (c >= 40) return "#f59e0b";
+    return "#64748b";
+  }
 
-  list.innerHTML = '';
-  const sorted = [...events].reverse();
+  function timeAgo(iso) {
+    const d = new Date(iso);
+    const diff = Math.floor((Date.now() - d) / 1000);
+    if (diff < 60)  return diff + "s ago";
+    if (diff < 3600) return Math.floor(diff/60) + "m ago";
+    return d.toLocaleTimeString();
+  }
 
-  sorted.forEach(ev => {
-    const li = document.createElement('li');
-    li.className = 'event';
-    const badgeClass = ev.action === 'PAUSE' ? 'badge-pause' : ev.action === 'ALERT' ? 'badge-alert' : 'badge-ignore';
-    const conf = ev.confidence || 0;
-    li.innerHTML = `
-      <div class="event-top">
-        <span class="event-badge ${badgeClass}">${ev.action || 'UNKNOWN'}</span>
-        <span class="event-time">${formatTime(ev.timestamp)}</span>
+  function renderEvents(events) {
+    const list = document.getElementById("event-list");
+    if (!events || events.length === 0) return;
+
+    list.innerHTML = "";
+    const sorted = [...events].sort((a,b) => new Date(b.created_at||b.timestamp) - new Date(a.created_at||a.timestamp));
+
+    sorted.forEach(ev => {
+      const li = document.createElement("li");
+      li.className = "event";
+      const action = (ev.action || "UNKNOWN").toUpperCase();
+      const badgeCls = action === "PAUSE" ? "badge-pause" : action === "ALERT" ? "badge-alert" : "badge-ignore";
+      const conf = Number(ev.confidence || 0);
+      const attack = (ev.attack_type || "unknown").replace(/_/g," ");
+      const ts = ev.created_at || ev.timestamp || "";
+      const attacker = ev.suspected_attacker || "unknown";
+      const shortAttacker = attacker.startsWith("0x") && attacker.length === 42
+        ? attacker.slice(0,8)+"..."+attacker.slice(-4) : attacker;
+      const risk = Number(ev.estimated_loss_usd || 0);
+
+      li.innerHTML = `
+        <div class="event-top">
+          <span class="badge ${badgeCls}">${action}</span>
+          <span class="event-time">${ts ? timeAgo(ts) : ""}</span>
+        </div>
+        <div class="event-attack">${attack}</div>
+        <div class="event-rationale">${ev.rationale || "—"}</div>
+        <div class="event-meta">
+          <div class="event-meta-item">Confidence <strong>${conf}%</strong></div>
+          ${risk > 0 ? `<div class="event-meta-item">Risk <strong>$${risk.toLocaleString()}</strong></div>` : ""}
+          <div class="event-meta-item">From <strong>${shortAttacker}</strong></div>
+        </div>
+        <div class="conf-bar"><div class="conf-fill" style="width:${conf}%;background:${confColor(conf)}"></div></div>
+        ${ev.pause_tx_hash ? `<div style="margin-top:8px"><code>pause tx: ${ev.pause_tx_hash.slice(0,22)}...</code></div>` : ""}
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  function updateStats(events) {
+    const total    = events.length;
+    const pauses   = events.filter(e => e.action === "PAUSE").length;
+    const alerts   = events.filter(e => e.action === "ALERT").length;
+    const protected_ = events.reduce((s,e) => s + Number(e.estimated_loss_usd||0), 0);
+
+    document.getElementById("stat-total").textContent     = total;
+    document.getElementById("stat-pauses").textContent    = pauses;
+    document.getElementById("stat-alerts").textContent    = alerts;
+    document.getElementById("stat-protected").textContent = "$" + protected_.toLocaleString();
+    document.getElementById("last-update").textContent    = "Updated " + new Date().toLocaleTimeString();
+  }
+
+  function renderReport(report) {
+    if (!report) return;
+    const data   = report.data || report;
+    const container = document.getElementById("report-container");
+    const sevCls = (data.severity||"").toLowerCase() === "critical" ? "sev-critical" : "sev-high";
+
+    const timeline = (data.attack_timeline || []).map((s,i) =>
+      `<div class="tl-item"><div class="tl-num">${i+1}</div><div class="tl-text">${s}</div></div>`
+    ).join("");
+
+    const remediation = (data.remediation_steps || []).map(s =>
+      `<li>${s}</li>`
+    ).join("");
+
+    container.innerHTML = `
+      <div class="report-title">${data.title || "Security Incident"}</div>
+      <span class="report-sev ${sevCls}">${data.severity || "High"}</span>
+      <div class="report-section">
+        <div class="report-section-title">Summary</div>
+        <div class="report-text">${data.executive_summary || data.rationale || "—"}</div>
       </div>
-      <div class="event-attack">${(ev.attack_type || 'unknown').replace(/_/g,' ')}</div>
-      <div class="event-rationale">${ev.rationale || '—'}</div>
-      <div class="confidence-bar">
-        <div class="confidence-fill" style="width:${conf}%;background:${confidenceColor(conf)}"></div>
+      <div class="report-section">
+        <div class="report-section-title">Funds protected</div>
+        <div class="protected-amt">$${Number(data.funds_protected_usd||0).toLocaleString()}</div>
       </div>
+      ${timeline ? `<div class="report-section"><div class="report-section-title">Attack timeline</div>${timeline}</div>` : ""}
+      ${remediation ? `<div class="report-section"><div class="report-section-title">Remediation</div><ul class="report-list">${remediation}</ul></div>` : ""}
+      ${data.pause_tx ? `<div style="margin-top:8px"><code>pause tx: ${data.pause_tx}</code></div>` : ""}
+      <div style="margin-top:12px;font-size:11px;color:var(--muted)">Generated ${data.generated_at ? new Date(data.generated_at).toLocaleString() : "just now"}</div>
     `;
-    list.appendChild(li);
-  });
-}
+  }
 
-function updateStats(events) {
-  const total = events.length;
-  const pauses = events.filter(e => e.action === 'PAUSE').length;
-  const alerts = events.filter(e => e.action === 'ALERT').length;
-  const protected_ = events.reduce((sum, e) => sum + (e.estimated_loss_usd || 0), 0);
+  async function fetchFromSupabase() {
+    if (SUPABASE_URL === "REPLACE_SUPABASE_URL") {
+      document.getElementById("conn-banner").classList.add("show");
+      setStatus(false, "Not configured");
+      return;
+    }
 
-  document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-pauses').textContent = pauses;
-  document.getElementById('stat-alerts').textContent = alerts;
-  document.getElementById('stat-protected').textContent = '$' + protected_.toLocaleString();
-  document.getElementById('last-update').textContent = 'Updated ' + new Date().toLocaleTimeString();
-}
+    try {
+      const headers = {
+        "apikey": SUPABASE_ANON,
+        "Authorization": "Bearer " + SUPABASE_ANON,
+        "Content-Type": "application/json",
+      };
 
-function renderReport(report) {
-  if (!report) return;
-  const container = document.getElementById('report-container');
-  const sevClass = report.severity === 'Critical' ? 'sev-critical' : 'sev-high';
+      const evRes = await fetch(
+        SUPABASE_URL + "/rest/v1/events?select=*&order=created_at.desc&limit=50",
+        { headers }
+      );
 
-  const timeline = (report.attack_timeline || []).map((step, i) =>
-    `<div class="timeline-item"><div class="tl-num">${i+1}</div><div class="tl-text">${step}</div></div>`
-  ).join('');
+      if (!evRes.ok) throw new Error("Events fetch failed: " + evRes.status);
+      const events = await evRes.json();
 
-  const remediation = (report.remediation_steps || []).map(s =>
-    `<li>${s}</li>`
-  ).join('');
-
-  container.innerHTML = `
-    <div class="report-title">${report.title || 'Security Incident'}</div>
-    <span class="report-severity ${sevClass}">${report.severity || 'High'}</span>
-    <div class="report-section">
-      <div class="report-section-title">Summary</div>
-      <div class="report-text">${report.executive_summary || report.rationale || ''}</div>
-    </div>
-    <div class="report-section">
-      <div class="report-section-title">Funds protected</div>
-      <div class="protected-amount">$${(report.funds_protected_usd || 0).toLocaleString()}</div>
-    </div>
-    <div class="report-section">
-      <div class="report-section-title">Attack timeline</div>
-      ${timeline || '<div class="report-text">No timeline available</div>'}
-    </div>
-    <div class="report-section">
-      <div class="report-section-title">Remediation steps</div>
-      <ul class="report-list">${remediation || '<li>See full report</li>'}</ul>
-    </div>
-    ${report.pause_tx ? `<div style="margin-top:8px"><code>pause tx: ${report.pause_tx.slice(0,20)}...</code></div>` : ''}
-  `;
-}
-
-async function poll() {
-  try {
-    // Fetch events
-    const evResp = await fetch('events.json?t=' + Date.now());
-    if (evResp.ok) {
-      const events = await evResp.json();
-      if (events.length !== knownEvents.length) {
-        knownEvents = events;
+      if (events.length !== lastEventCount) {
+        lastEventCount = events.length;
         renderEvents(events);
         updateStats(events);
       }
-    }
-  } catch(e) {}
 
-  try {
-    // Fetch last report
-    const repResp = await fetch('last_report.json?t=' + Date.now());
-    if (repResp.ok) {
-      const report = await repResp.json();
-      if (JSON.stringify(report) !== JSON.stringify(lastReport)) {
-        lastReport = report;
-        renderReport(report);
+      const repRes = await fetch(
+        SUPABASE_URL + "/rest/v1/reports?select=*&order=created_at.desc&limit=1",
+        { headers }
+      );
+      if (repRes.ok) {
+        const reports = await repRes.json();
+        if (reports.length > 0) {
+          const latest = reports[0];
+          if (latest.id !== lastReportId) {
+            lastReportId = latest.id;
+            renderReport(latest);
+          }
+        }
       }
-    }
-  } catch(e) {}
-}
 
-poll();
-setInterval(poll, 2000);
+      setStatus(true, "Live — Sepolia");
+
+    } catch(err) {
+      console.error("Supabase error:", err);
+      setStatus(false, "Connection error");
+    }
+  }
+
+  fetchFromSupabase();
+  setInterval(fetchFromSupabase, 3000);
 </script>
 </body>
 </html>

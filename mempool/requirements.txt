@@ -1,0 +1,18 @@
+# Protocol Guardian v2 — Dependencies
+# Core
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.0.0
+
+# Mempool monitoring
+websockets>=12.0
+aiohttp>=3.9.0
+
+# Claude API integration
+httpx>=0.25.0
+
+# Ethereum (optional — for EVM simulation in next phase)
+# web3>=6.0.0
+
+# Dashboard
+python-multipart>=0.0.6

@@ -1,14 +1,5 @@
 """
-ai_agent.py — AI reasoning layer using Claude.
-
-Takes a suspicious TxContext + HeuristicsResult and asks Claude to:
-  1. Classify the attack type
-  2. Estimate confidence (0-100)
-  3. Decide action: PAUSE | ALERT | IGNORE
-  4. Provide plain-English rationale
-  5. Estimate funds at risk
-
-Uses a RAG context built from real DeFi exploit history.
+ai_agent.py — AI reasoning layer using Claude Opus.
 """
 
 import json
@@ -18,7 +9,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 import anthropic
-
 from .exploit_rag import ExploitRAG
 
 logger = logging.getLogger("guardian.ai_agent")
@@ -26,14 +16,13 @@ logger = logging.getLogger("guardian.ai_agent")
 
 @dataclass
 class AgentDecision:
-    """Structured output from the AI reasoning layer."""
-    attack_type: str          # e.g. "flash_loan_price_manipulation"
-    confidence: int           # 0-100
-    action: str               # "PAUSE" | "ALERT" | "IGNORE"
-    suspected_attacker: str   # address or "unknown"
-    estimated_loss_usd: int   # estimated USD at risk
-    rationale: str            # plain-English explanation
-    raw_response: str         # full Claude response for logging
+    attack_type: str
+    confidence: int
+    action: str
+    suspected_attacker: str
+    estimated_loss_usd: int
+    rationale: str
+    raw_response: str
 
 
 SYSTEM_PROMPT = """You are Protocol Guardian, an autonomous DeFi security AI agent.
@@ -78,24 +67,16 @@ class AIAgent:
         self.client = anthropic.Anthropic(api_key=api_key)
         self.pool_address = pool_address
         self.rag = ExploitRAG()
-        self.model = "claude-sonnet-4-5"
+        self.model = "claude-opus-4-5"
 
     async def analyse(self, ctx, heuristics_result) -> AgentDecision:
-        """
-        Core reasoning function. Builds context, calls Claude, parses response.
-        """
-        # 1. Get relevant historical exploits from RAG
         similar_exploits = self.rag.get_similar_exploits(
             signals=[s.name for s in heuristics_result.signals],
             input_selector=ctx.input_data[:10] if len(ctx.input_data or "") >= 10 else ""
         )
-
-        # 2. Build the user message
         user_message = self._build_prompt(ctx, heuristics_result, similar_exploits)
+        logger.info(f"Invoking Claude Opus for tx: {ctx.tx_hash[:16]}...")
 
-        logger.info(f"Invoking Claude for tx: {ctx.tx_hash[:16]}...")
-
-        # 3. Call Claude
         response = self.client.messages.create(
             model=self.model,
             max_tokens=1000,
@@ -104,14 +85,8 @@ class AIAgent:
         )
 
         raw_response = response.content[0].text
-        logger.debug(f"Claude raw response: {raw_response}")
-
-        # 4. Parse response
         decision = self._parse_response(raw_response, ctx.tx_hash)
-        logger.info(
-            f"Decision for {ctx.tx_hash[:16]}: {decision.action} | "
-            f"{decision.attack_type} | confidence={decision.confidence}%"
-        )
+        logger.info(f"Decision for {ctx.tx_hash[:16]}: {decision.action} | {decision.attack_type} | confidence={decision.confidence}%")
         return decision
 
     def _build_prompt(self, ctx, heuristics, similar_exploits: list) -> str:
@@ -135,29 +110,21 @@ class AIAgent:
             heuristics.to_prompt_context(),
             "",
         ]
-
         if similar_exploits:
             lines.append("=== SIMILAR HISTORICAL EXPLOITS (RAG) ===")
             for ex in similar_exploits[:3]:
-                lines.append(
-                    f"- {ex['name']} ({ex['date']}): {ex['description']} "
-                    f"[Loss: ${ex.get('loss_usd', 'unknown'):,}]"
-                )
+                lines.append(f"- {ex['name']} ({ex['date']}): {ex['description']} [Loss: ${ex.get('loss_usd', 'unknown'):,}]")
             lines.append("")
-
         lines.append("Analyse this transaction and respond with your JSON decision.")
         return "\n".join(lines)
 
     def _parse_response(self, raw: str, tx_hash: str) -> AgentDecision:
-        """Parse Claude's JSON response into an AgentDecision."""
-        # Strip markdown fences if present
         clean = raw.strip()
         if clean.startswith("```"):
             clean = clean.split("```")[1]
             if clean.startswith("json"):
                 clean = clean[4:]
         clean = clean.strip()
-
         try:
             data = json.loads(clean)
             return AgentDecision(
@@ -171,14 +138,9 @@ class AIAgent:
             )
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.error(f"Failed to parse Claude response for {tx_hash}: {e}")
-            logger.error(f"Raw: {raw}")
-            # Safe fallback — alert but don't pause on parse error
             return AgentDecision(
-                attack_type="parse_error",
-                confidence=0,
-                action="ALERT",
-                suspected_attacker="unknown",
-                estimated_loss_usd=0,
+                attack_type="parse_error", confidence=0, action="ALERT",
+                suspected_attacker="unknown", estimated_loss_usd=0,
                 rationale=f"AI response parse error. Manual review required. Raw: {raw[:200]}",
                 raw_response=raw,
             )

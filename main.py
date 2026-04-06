@@ -24,8 +24,10 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 from agent.ingestion import BlockchainIngestion
 from agent.heuristics import HeuristicsEngine
 
-# ── Protocol Guardian v2: Mempool + RAG imports ──
+# ── Protocol Guardian v2 imports ──
 from mempool.api import MempoolAPI, setup_mempool_routes
+from mempool.watchlist import Watchlist, PROTOCOL_REGISTRY
+from mempool.simulator import EVMSimulator, create_mock_simulation
 from knowledge.exploit_db import ExploitKnowledgeBase
 
 
@@ -62,7 +64,7 @@ class ProtocolGuardianAgent:
 
         self.heuristics = HeuristicsEngine()
 
-        # ── v2: Initialize RAG exploit knowledge base ──
+        # ── v2: RAG exploit knowledge base ──
         self.knowledge_base = ExploitKnowledgeBase()
         kb_stats = self.knowledge_base.get_stats()
         logger.info(
@@ -70,8 +72,21 @@ class ProtocolGuardianAgent:
             f"{kb_stats['total_loss_display']} total losses"
         )
 
-        # ── v2: Mempool API (will be started in run()) ──
-        self.mempool_api = None
+        # ── v2: Multi-protocol watchlist ──
+        self.watchlist = Watchlist()
+        for pid in ["aave_v3", "uniswap_v3", "compound_v3", "makerdao", "lido", "wormhole"]:
+            self.watchlist.add_from_registry(pid)
+        wl_status = self.watchlist.get_status()
+        logger.info(
+            f"Watchlist loaded: {wl_status['active_protocols']} protocols, "
+            f"{wl_status['total_contracts']} contracts, {wl_status['total_tvl_display']} TVL"
+        )
+
+        # ── v2: EVM trace simulator ──
+        http_url = os.getenv("ALCHEMY_HTTP_RPC", "")
+        self.simulator = EVMSimulator(http_url) if http_url else None
+        if self.simulator:
+            logger.info("EVM Trace Simulator initialized")
 
         if not no_ai:
             from agent.ai_agent import AIAgent
@@ -134,11 +149,13 @@ class ProtocolGuardianAgent:
 
         logger.info(f"Heuristics escalation — risk={heuristics_result.risk_score} | {heuristics_result.summary}")
 
+        # ── v2: Identify target protocol ──
+        protocol_label = self.watchlist.get_contract_label(ctx.to_addr if hasattr(ctx, 'to_addr') else "")
+        logger.info(f"Target: {protocol_label}")
+
         # ── v2: RAG context enrichment ──
-        # Query the exploit knowledge base for historical parallels
         rag_context = ""
         try:
-            # Extract attack categories from heuristics
             detected_categories = []
             summary_lower = heuristics_result.summary.lower()
             if "flash" in summary_lower:
@@ -155,19 +172,40 @@ class ProtocolGuardianAgent:
             if detected_categories:
                 rag_context = self.knowledge_base.get_context_for_threat(
                     categories=detected_categories,
-                    selectors=[],  # Can extract from ctx.input_data if available
+                    selectors=[],
                     max_exploits=3,
                 )
-                logger.info(f"RAG enrichment: found historical parallels for {detected_categories}")
+                logger.info(f"RAG enrichment: found parallels for {detected_categories}")
         except Exception as e:
             logger.warning(f"RAG context error: {e}")
 
+        # ── v2: EVM trace simulation ──
+        sim_context = ""
+        try:
+            if self.simulator and hasattr(ctx, 'raw_tx') and ctx.raw_tx:
+                logger.info("Running EVM trace simulation...")
+                sim_result = await self.simulator.simulate(ctx.raw_tx)
+                sim_context = sim_result.to_claude_context()
+                logger.info(
+                    f"Simulation: {len(sim_result.internal_calls)} calls, "
+                    f"{sim_result.total_eth_moved:.2f} ETH moved, {len(sim_result.warnings)} warnings"
+                )
+            elif hasattr(ctx, 'raw_tx') and ctx.raw_tx:
+                sim_result = create_mock_simulation(ctx.raw_tx)
+                sim_context = sim_result.to_claude_context()
+                logger.info(f"Mock simulation: {len(sim_result.internal_calls)} calls traced")
+        except Exception as e:
+            logger.warning(f"EVM simulation error: {e}")
+
         # 2. AI reasoning (skipped if --no-ai)
         if self.ai_agent:
-            # ── v2: Inject RAG context into AI analysis ──
-            decision = await self.ai_agent.analyse(ctx, heuristics_result, rag_context=rag_context)
+            full_context = ""
+            if rag_context:
+                full_context += rag_context + "\n\n"
+            if sim_context:
+                full_context += sim_context + "\n\n"
+            decision = await self.ai_agent.analyse(ctx, heuristics_result, rag_context=full_context)
         else:
-            # Mock decision for no-ai mode
             from agent.ai_agent import AgentDecision
             decision = AgentDecision(
                 attack_type="flash_loan_price_manipulation",
@@ -175,7 +213,7 @@ class ProtocolGuardianAgent:
                 action="PAUSE",
                 suspected_attacker=ctx.from_addr,
                 estimated_loss_usd=42000,
-                rationale=f"[MOCK] Heuristics detected: {heuristics_result.summary}. Simulated AI decision.",
+                rationale=f"[MOCK] Heuristics: {heuristics_result.summary}. Target: {protocol_label}.",
                 raw_response="mock",
             )
 
@@ -198,7 +236,6 @@ class ProtocolGuardianAgent:
                 "simulated": True,
             }
             logger.info(f"[SIMULATE] Would execute: {decision.action} — writing to dashboard anyway")
-            # Write to Supabase even in simulate mode so dashboard shows data
             _write_to_supabase(result)
 
         # 4. Post-incident report if pause
@@ -225,71 +262,83 @@ class ProtocolGuardianAgent:
     async def run(self):
         mode = "SIMULATE" if self.simulate else "LIVE"
         ai = "NO-AI (mock decisions)" if self.no_ai else "Claude AI"
+        wl = self.watchlist.get_status()
+        kb = self.knowledge_base.get_stats()
         print(f"""
-╔══════════════════════════════════════════════════════════════════╗
-║     Protocol Guardian v2 — {mode:<18}                       ║
-╠══════════════════════════════════════════════════════════════════╣
-║  Ingestion  → HTTP block polling (3s) + Mempool pre-tx monitor  ║
-║  Heuristics → Flash loan, drain, oracle, reentrancy checks      ║
-║  RAG Engine → {self.knowledge_base.get_stats()['total_exploits']} exploits / {self.knowledge_base.get_stats()['total_loss_display']} historical context       ║
-║  AI Layer   → {ai:<36}                  ║
-║  Action     → {"Onchain emergencyPause()" if not self.simulate else "Simulate only (writes to dashboard)  "}   ║
-╚══════════════════════════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════════════════╗
+║     Protocol Guardian v2 — {mode:<18}                              ║
+╠═══════════════════════════════════════════════════════════════════════╣
+║  Ingestion   → Block polling (3s) + Mempool pre-tx detection         ║
+║  Heuristics  → Flash loan, drain, oracle, reentrancy, access ctrl    ║
+║  RAG Engine  → {kb['total_exploits']} exploits / {kb['total_loss_display']} historical intelligence          ║
+║  Simulator   → EVM trace simulation (eth_call + debug_traceCall)     ║
+║  Watchlist   → {wl['active_protocols']} protocols / {wl['total_contracts']} contracts / {wl['total_tvl_display']} TVL        ║
+║  AI Layer    → {ai:<40}         ║
+║  Action      → {"Onchain emergencyPause()" if not self.simulate else "Simulate only (writes to dashboard)  "}      ║
+╚═══════════════════════════════════════════════════════════════════════╝
 """)
         logger.info(f"Pool:     {os.environ.get('LENDING_POOL_ADDRESS')}")
         logger.info(f"Guardian: {os.environ.get('GUARDIAN_CONTRACT_ADDRESS', 'N/A')}")
-        logger.info(f"Supabase: {'configured' if os.getenv('SUPABASE_URL') else 'NOT configured — dashboard will be empty'}")
+        logger.info(f"Supabase: {'configured' if os.getenv('SUPABASE_URL') else 'NOT configured'}")
 
-        # ── v2: Start mempool monitor in background ──
+        for p in wl["protocols"]:
+            logger.info(f"Watching: {p['name']} ({p['chain']}) — {p['contracts']} contracts, TVL {p['tvl']}")
+
+        # ── v2: Start mempool monitor with full watchlist ──
         ws_url = os.getenv("ALCHEMY_WS_RPC", "")
         http_url = os.getenv("ALCHEMY_HTTP_RPC", "")
-        pool_addr = os.environ["LENDING_POOL_ADDRESS"]
-        guardian_addr = os.getenv("GUARDIAN_CONTRACT_ADDRESS", "")
-        watched = [addr for addr in [pool_addr, guardian_addr] if addr]
+        watched_addresses = list(self.watchlist.get_all_addresses())
 
         try:
             from mempool.monitor import create_monitor
             monitor = create_monitor(
-                ws_url=ws_url,
-                http_url=http_url,
-                watched_contracts=watched,
-                use_enhanced=True,
+                ws_url=ws_url, http_url=http_url,
+                watched_contracts=watched_addresses, use_enhanced=True,
             )
-            # Wire threat callbacks
+
             async def on_mempool_threat(report):
+                protocol_label = self.watchlist.get_contract_label(report.tx.to_address or "")
                 logger.warning(
                     f"[MEMPOOL] Pre-tx threat: score={report.composite_risk_score:.0%} "
-                    f"level={report.risk_level} cats={report.attack_categories} "
-                    f"tx={report.tx.tx_hash[:16]}..."
+                    f"level={report.risk_level} target={protocol_label} "
+                    f"cats={report.attack_categories}"
                 )
-                # Write mempool threats to Supabase for dashboard
+                sim_info = ""
+                if report.composite_risk_score >= 0.6:
+                    try:
+                        raw_tx = {
+                            "hash": report.tx.tx_hash, "from": report.tx.from_address,
+                            "to": report.tx.to_address, "value": hex(report.tx.value_wei),
+                            "gas": hex(report.tx.gas_limit), "input": report.tx.calldata,
+                        }
+                        sim_result = create_mock_simulation(raw_tx) if not self.simulator else await self.simulator.simulate(raw_tx)
+                        sim_info = f" | sim: {len(sim_result.internal_calls)} calls, {sim_result.total_eth_moved:.2f} ETH"
+                    except Exception as e:
+                        logger.warning(f"[MEMPOOL] Sim failed: {e}")
+
                 _write_to_supabase({
-                    "tx_hash": report.tx.tx_hash,
-                    "action": report.recommended_action,
+                    "tx_hash": report.tx.tx_hash, "action": report.recommended_action,
                     "attack_type": ",".join(report.attack_categories),
                     "confidence": int(report.composite_risk_score * 100),
-                    "rationale": f"[MEMPOOL PRE-TX] {len(report.indicators)} indicators detected before block confirmation",
-                    "estimated_loss_usd": 0,
-                    "suspected_attacker": report.tx.from_address,
-                    "pause_tx_hash": None,
-                    "success": True,
+                    "rationale": f"[MEMPOOL PRE-TX] {len(report.indicators)} indicators, target={protocol_label}{sim_info}",
+                    "estimated_loss_usd": 0, "suspected_attacker": report.tx.from_address,
+                    "pause_tx_hash": None, "success": True,
                 })
 
             async def on_mempool_critical(report):
+                protocol_label = self.watchlist.get_contract_label(report.tx.to_address or "")
                 logger.critical(
-                    f"[MEMPOOL CRITICAL] Autonomous pause recommended! "
-                    f"score={report.composite_risk_score:.0%} tx={report.tx.tx_hash[:16]}..."
+                    f"[MEMPOOL CRITICAL] AUTONOMOUS PAUSE RECOMMENDED! "
+                    f"score={report.composite_risk_score:.0%} target={protocol_label}"
                 )
 
             monitor.on_threat(on_mempool_threat)
             monitor.on_critical(on_mempool_critical)
-
-            logger.info(f"Mempool monitor starting — watching {len(watched)} contracts")
+            logger.info(f"Mempool monitor starting — watching {len(watched_addresses)} contract addresses")
             asyncio.create_task(monitor.start())
         except Exception as e:
-            logger.warning(f"Mempool monitor failed to start: {e} — continuing with block-level monitoring only")
+            logger.warning(f"Mempool monitor failed to start: {e} — block-level monitoring only")
 
-        # Start original block-level ingestion
         await self.ingestion.start()
 
 

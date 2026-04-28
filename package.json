@@ -28,6 +28,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@keeperhub/wallet": "^0.1.7",
     "dotenv": "^16.4.0"
   }
 }

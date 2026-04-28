@@ -161,9 +161,43 @@
 
   <div class="footer">
     <span>Protocol Guardian v2 — ETHGlobal Open Agents 2026</span>
-    <span>Sepolia: MockLendingPool 0x8456...630E · ProtocolGuardian 0x2344...12fE</span>
+    <span>
+      Sepolia: MockLendingPool
+      <span data-ens-address="0x84568d45c653844BAe9d459311dD3487FcA2630E">0x8456...630E</span>
+      · ProtocolGuardian
+      <span data-ens-address="0x2344B12ae58c9c097C8400edbB1f9fB4DfCA12fE">0x2344...12fE</span>
+      · Agent identity:
+      <span id="guardian-ens-identity" data-ens-address="0x2344B12ae58c9c097C8400edbB1f9fB4DfCA12fE">resolving…</span>
+    </span>
   </div>
 </div>
+
+<!-- ENS resolution layer (Sepolia + mainnet). See dashboard/ens.js -->
+<script>
+  // Expose the agent's on-chain address so PGEns.guardianIdentity() can
+  // pull text records (description, com.github, url, avatar) live at render.
+  window.GUARDIAN_AGENT_ADDRESS = "0x2344B12ae58c9c097C8400edbB1f9fB4DfCA12fE";
+</script>
+<script type="module" src="./ens.js"></script>
+<script type="module">
+  import { guardianIdentity } from "./ens.js";
+  // Render the agent's full ENS-resolved identity badge in the footer once
+  // it lands. If unresolvable (name not yet set), the inline data-ens-address
+  // upgrader on the same node falls back to a name-or-address.
+  guardianIdentity().then((id) => {
+    const el = document.getElementById("guardian-ens-identity");
+    if (!el) return;
+    if (!id) {
+      el.textContent = "0x2344...12fE";
+      el.title = "Set an ENS name on this address to brand the agent";
+      return;
+    }
+    el.textContent = id.name;
+    el.title = id.description
+      ? id.name + " — " + id.description + " (resolved on " + id.network + ")"
+      : id.name + " (resolved on " + id.network + ")";
+  });
+</script>
 
 <script>
 // ── Data ──

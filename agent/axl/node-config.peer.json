@@ -1,0 +1,5 @@
+{
+  "PrivateKeyPath": "private.pem",
+  "Peers": ["tls://axl-public:9001"],
+  "Listen": []
+}

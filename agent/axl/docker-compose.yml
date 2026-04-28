@@ -1,0 +1,67 @@
+# Three-node Protocol Guardian swarm over Gensyn AXL.
+#
+#   axl-public  — listening node, publishes on tls://0.0.0.0:9001
+#   axl-alice   — Guardian #1, peers to axl-public
+#   axl-bob     — Guardian #2, peers to axl-public
+#
+# Each container exposes the AXL HTTP bridge on :9090 so the Python agent
+# can POST to /send and GET from /recv. Run all three for the demo, then
+# trigger a threat from Alice's container — Bob should see the fingerprint
+# in /recv within ~1 second.
+#
+# Run:  docker compose -f agent/axl/docker-compose.yml up --build
+
+services:
+  axl-public:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: axl-public
+    environment:
+      - AXL_CONFIG=/node/node-config.json
+    volumes:
+      - ./node-config.public.json:/node/node-config.json:ro
+      - axl-public-key:/node
+    ports:
+      - "9001:9001"   # P2P listen
+      - "9090:9090"   # local HTTP bridge
+    networks: [pg-swarm]
+
+  axl-alice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: axl-alice
+    environment:
+      - AXL_CONFIG=/node/node-config.json
+    volumes:
+      - ./node-config.peer.json:/node/node-config.json:ro
+      - axl-alice-key:/node
+    depends_on: [axl-public]
+    ports:
+      - "9091:9090"   # Alice's HTTP bridge → host :9091
+    networks: [pg-swarm]
+
+  axl-bob:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: axl-bob
+    environment:
+      - AXL_CONFIG=/node/node-config.json
+    volumes:
+      - ./node-config.peer.json:/node/node-config.json:ro
+      - axl-bob-key:/node
+    depends_on: [axl-public]
+    ports:
+      - "9092:9090"   # Bob's HTTP bridge → host :9092
+    networks: [pg-swarm]
+
+volumes:
+  axl-public-key:
+  axl-alice-key:
+  axl-bob-key:
+
+networks:
+  pg-swarm:
+    driver: bridge

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Protocol Guardian — autonomous on-chain defense for DeFi.">
+  <title>Protocol Guardian</title>
+  <desc>Autonomous on-chain defense for DeFi. Catch malicious mempool transactions and pause vulnerable contracts in real time. Built by Rivaldo Janneh for ETHGlobal Open Agents 2026.</desc>
+
+  <defs>
+    <radialGradient id="glow-tr" cx="85%" cy="-5%" r="70%">
+      <stop offset="0%" stop-color="#eef0ff"/>
+      <stop offset="100%" stop-color="#fbfcff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-bl" cx="0%" cy="105%" r="60%">
+      <stop offset="0%" stop-color="#f3f5ff"/>
+      <stop offset="100%" stop-color="#fbfcff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#fbfcff"/>
+  <rect width="1200" height="630" fill="url(#glow-tr)"/>
+  <rect width="1200" height="630" fill="url(#glow-bl)"/>
+
+  <g opacity="0.07">
+    <path d="M0 320 L420 320 L450 270 L478 380 L506 180 L534 380 L562 270 L590 320 L1200 320" stroke="#4f46f5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <g transform="translate(80, 80)">
+    <rect width="320" height="40" rx="20" fill="#eef0ff"/>
+    <circle cx="22" cy="20" r="4.5" fill="#27d6c4"/>
+    <text x="38" y="26" font-family="Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="800" font-size="13" letter-spacing="0.10em" fill="#4338e9">LIVE ON SEPOLIA · OPEN AGENTS 2026</text>
+  </g>
+
+  <g transform="translate(80, 220) scale(3.4)">
+    <path d="M32 8 L52 16 V36 C52 46 43 53 32 56 C21 53 12 46 12 36 V16 Z" fill="#4f46f5"/>
+    <path d="M19 36 L25 36 L28 30 L31 43 L34 22 L37 43 L40 30 L43 36 L49 36" stroke="#27d6c4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="49" cy="36" r="1.8" fill="#27d6c4"/>
+  </g>
+
+  <text x="350" y="320" font-family="Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="900" font-size="76" letter-spacing="-0.028em" fill="#071233">Protocol Guardian</text>
+
+  <text x="352" font-family="Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="600" font-size="26" letter-spacing="-0.005em" fill="#59637f">
+    <tspan x="352" y="378">Catch malicious mempool transactions</tspan>
+    <tspan x="352" y="416">and pause vulnerable contracts in real time.</tspan>
+  </text>
+
+  <g transform="translate(352, 460)">
+    <rect width="180" height="34" rx="9" fill="#4f46f5"/>
+    <text x="22" y="22" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="700" font-size="14" letter-spacing="-0.005em" fill="#ffffff">View Live Demo →</text>
+    <rect x="196" y="0" width="160" height="34" rx="9" fill="none" stroke="#c9d0f5" stroke-width="1"/>
+    <text x="218" y="22" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="700" font-size="14" letter-spacing="-0.005em" fill="#071233">Read the docs</text>
+  </g>
+
+  <g transform="translate(80, 540)">
+    <text font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="16" letter-spacing="-0.005em" fill="#071233">Built by Rivaldo Janneh</text>
+    <text x="0" y="24" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="500" font-size="14" fill="#8f96ad">protocol-guardian.vercel.app · github.com/janneh2000/protocol-guardian</text>
+  </g>
+</svg>

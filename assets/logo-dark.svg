@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Protocol Guardian">
+  <title>Protocol Guardian</title>
+  <desc>Shield with live ECG-style pulse trace, dark-background variant.</desc>
+  <path d="M32 8 L52 16 V36 C52 46 43 53 32 56 C21 53 12 46 12 36 V16 Z" fill="#ffffff"/>
+  <path d="M19 36 L25 36 L28 30 L31 43 L34 22 L37 43 L40 30 L43 36 L49 36" stroke="#27d6c4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="49" cy="36" r="1.8" fill="#27d6c4"/>
+</svg>

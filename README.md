@@ -12,6 +12,31 @@ Built for **ETHGlobal Open Agents 2026**. Live on Sepolia.
 
 ---
 
+## Note for ETHGlobal judges — repo timeline
+
+This repo's first commit pre-dates the official Open Agents hacking window (kickoff: April 24, 2026). Here's why and what to look at:
+
+**Why the early commits exist.** I created this repository the day Open Agents was announced and used it as a personal research/brainstorming workspace for ~26 days before kickoff. Every commit dated **March 29 – April 6** is scaffolding: the base Solidity contracts, the agent loop skeleton, the mempool ingestion plumbing, the RAG dataset, and the dashboard shell. None of those commits implement a prize-aligned feature.
+
+**Where the hackathon-eligible work lives.** Every commit dated **April 24, 2026 or later** is hackathon-window work. That's where all three partner integrations, the entire public-facing surface, and the brand system were built:
+
+| Commit | Date | What's in it |
+|---|---|---|
+| [`ba96505`](../../commit/ba96505) | Apr 28 | KeeperHub paid-intel escalation via `@keeperhub/wallet` |
+| [`35523b9`](../../commit/35523b9) | Apr 28 | ENS live resolution + Sepolia registration helper |
+| [`512ee6b`](../../commit/512ee6b) | Apr 28 | Gensyn AXL Guardian swarm — P2P fingerprint mesh |
+| [`296ca95`](../../commit/296ca95) | Apr 28 | Logo system + 1200×630 cover image |
+| [`86f2302`](../../commit/86f2302) | Apr 28 | `/get-started` page (wallet connect + email + how-it-works) |
+| [`7168322`](../../commit/7168322) | Apr 27 | Marketing site — landing, login, team, light + dark themes |
+| [`26f44cc`](../../commit/26f44cc) | Apr 28 | Hero illustration — concrete mempool → classifier → on-chain action |
+| [`a4d2563`](../../commit/a4d2563) | Apr 29 | This README |
+
+**Verifying.** Run `git log --since="2026-04-24" --pretty=format:"%h %ad %s" --date=short` from a clone of this repo to see the full hackathon-window commit list. The prize-form "link to code where the tech is used" fields point at line numbers inside the post-April-24 commits.
+
+I'd rather flag this upfront than have it surface as a question during review.
+
+---
+
 ## What it does
 
 | Layer | What happens |

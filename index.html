@@ -48,6 +48,11 @@
       --hero-mask: rgba(7, 18, 51, 0.04);
       --hero-illu-mode: multiply;
 
+      /* Semantic threat colors used by the hero illustration's malicious-tx row. */
+      --danger: #dc2626;
+      --danger-soft: #fee9e7;
+      --danger-line: #ff6052;
+
       /* Inverted CTA card — same dark scheme in both themes by design. */
       --inv-bg: #071233;
       --inv-fg: #ffffff;
@@ -84,6 +89,11 @@
       --shadow-cta: 0 12px 30px rgba(124, 117, 255, 0.45);
       --hero-mask: rgba(255, 255, 255, 0.04);
       --hero-illu-mode: normal;
+
+      /* Semantic threat colors — dark-mode variants. */
+      --danger: #f87171;
+      --danger-soft: #2c0d0d;
+      --danger-line: #f87171;
 
       /* Inverted CTA card stays the same in dark mode — fixed dark scheme. */
       --inv-bg: #071233;
@@ -589,60 +599,104 @@
             </div>
           </div>
           <div class="hero-illu" aria-hidden="true">
-            <svg viewBox="0 0 600 570" xmlns="http://www.w3.org/2000/svg">
-              <!-- soft frame -->
-              <rect x="40" y="40" width="520" height="490" rx="20" fill="var(--white)" stroke="var(--line)" stroke-width="1.5"/>
+            <svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+              <!-- ── App window frame ────────────────────────────────── -->
+              <rect x="30" y="30" width="540" height="540" rx="14" fill="var(--white)" stroke="var(--line)" stroke-width="1.5"/>
 
-              <!-- header bar -->
-              <rect x="40" y="40" width="520" height="56" rx="20" fill="var(--blue-soft-2)"/>
-              <rect x="40" y="76" width="520" height="20" fill="var(--blue-soft-2)"/>
-              <circle cx="68" cy="68" r="5" fill="var(--blue)"/>
-              <circle cx="86" cy="68" r="5" fill="var(--mint)"/>
-              <circle cx="104" cy="68" r="5" fill="var(--soft)"/>
-              <rect x="138" y="62" width="180" height="12" rx="3" fill="var(--line-strong)"/>
+              <!-- Browser chrome -->
+              <rect x="30" y="30" width="540" height="44" rx="14" fill="var(--blue-soft-2)"/>
+              <rect x="30" y="60" width="540" height="14" fill="var(--blue-soft-2)"/>
+              <circle cx="50" cy="52" r="4" fill="var(--blue)"/>
+              <circle cx="68" cy="52" r="4" fill="var(--mint)"/>
+              <circle cx="86" cy="52" r="4" fill="var(--soft)"/>
+              <rect x="120" y="44" width="200" height="14" rx="3" fill="var(--line-strong)"/>
+              <text x="130" y="55" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="700" fill="var(--soft)" letter-spacing="0.04em">protocol-guardian.live</text>
+              <circle cx="528" cy="52" r="3.5" fill="var(--danger)">
+                <animate attributeName="opacity" values="1;0.3;1" dur="1.4s" repeatCount="indefinite"/>
+              </circle>
+              <text x="538" y="56" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="800" fill="var(--ink)" letter-spacing="0.08em">LIVE</text>
 
-              <!-- mempool list -->
-              <rect x="68" y="120" width="200" height="30" rx="6" fill="var(--blue-soft)"/>
-              <rect x="78" y="129" width="60" height="12" rx="3" fill="var(--blue)"/>
-              <rect x="148" y="129" width="100" height="12" rx="3" fill="var(--blue-strong)" opacity="0.55"/>
+              <!-- ── Mempool column header ───────────────────────────── -->
+              <text x="48" y="100" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="800" fill="var(--soft)" letter-spacing="0.10em">MEMPOOL · BLOCK 6,512,410</text>
 
-              <rect x="68" y="156" width="200" height="30" rx="6" fill="var(--blue-tint)" stroke="var(--line)" stroke-width="1"/>
-              <rect x="78" y="165" width="50" height="12" rx="3" fill="var(--soft)"/>
-              <rect x="138" y="165" width="100" height="12" rx="3" fill="var(--soft)" opacity="0.55"/>
+              <!-- Tx 1: benign transfer -->
+              <rect x="48" y="110" width="240" height="36" rx="6" fill="var(--blue-tint)" stroke="var(--line)" stroke-width="1"/>
+              <text x="58" y="124" font-family="ui-monospace, 'JetBrains Mono', Menlo, monospace" font-size="9" fill="var(--soft)" font-weight="600">0xa9059cbb</text>
+              <text x="58" y="138" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700" fill="var(--ink)">transfer · 0.34 ETH</text>
+              <text x="278" y="131" font-family="ui-monospace, monospace" font-size="9" fill="var(--soft)" text-anchor="end" font-weight="600">32 gwei</text>
 
-              <rect x="68" y="192" width="200" height="30" rx="6" fill="var(--blue-tint)" stroke="var(--line)" stroke-width="1"/>
-              <rect x="78" y="201" width="50" height="12" rx="3" fill="var(--soft)"/>
-              <rect x="138" y="201" width="100" height="12" rx="3" fill="var(--soft)" opacity="0.55"/>
+              <!-- Tx 2: approve -->
+              <rect x="48" y="150" width="240" height="36" rx="6" fill="var(--blue-tint)" stroke="var(--line)" stroke-width="1"/>
+              <text x="58" y="164" font-family="ui-monospace, monospace" font-size="9" fill="var(--soft)" font-weight="600">0x095ea7b3</text>
+              <text x="58" y="178" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700" fill="var(--ink)">approve · USDC unlimited</text>
+              <text x="278" y="171" font-family="ui-monospace, monospace" font-size="9" fill="var(--soft)" text-anchor="end" font-weight="600">14 gwei</text>
 
-              <!-- highlighted threat -->
-              <rect x="68" y="228" width="200" height="40" rx="6" fill="#ffe9e6" stroke="#ff6052" stroke-width="1.5"/>
-              <circle cx="84" cy="248" r="5" fill="#ff6052"/>
-              <rect x="98" y="234" width="80" height="10" rx="2" fill="#ff6052"/>
-              <rect x="98" y="250" width="140" height="10" rx="2" fill="#ff6052" opacity="0.55"/>
+              <!-- Tx 3: swap -->
+              <rect x="48" y="190" width="240" height="36" rx="6" fill="var(--blue-tint)" stroke="var(--line)" stroke-width="1"/>
+              <text x="58" y="204" font-family="ui-monospace, monospace" font-size="9" fill="var(--soft)" font-weight="600">0x38ed1739</text>
+              <text x="58" y="218" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700" fill="var(--ink)">swap · 1.2 ETH → USDC</text>
+              <text x="278" y="211" font-family="ui-monospace, monospace" font-size="9" fill="var(--soft)" text-anchor="end" font-weight="600">28 gwei</text>
 
-              <!-- agent reasoning -->
-              <rect x="300" y="120" width="232" height="148" rx="10" fill="var(--blue-tint)" stroke="var(--line)" stroke-width="1"/>
-              <rect x="316" y="138" width="120" height="12" rx="3" fill="var(--ink)"/>
-              <rect x="316" y="158" width="170" height="8" rx="2" fill="var(--soft)"/>
-              <rect x="316" y="174" width="140" height="8" rx="2" fill="var(--soft)"/>
-              <rect x="316" y="190" width="180" height="8" rx="2" fill="var(--soft)"/>
-              <!-- confidence bar -->
-              <rect x="316" y="218" width="200" height="8" rx="4" fill="var(--line)"/>
-              <rect x="316" y="218" width="180" height="8" rx="4" fill="var(--blue)"/>
-              <rect x="316" y="234" width="86" height="10" rx="2" fill="var(--blue-strong)"/>
+              <!-- Tx 4: MALICIOUS — flagged -->
+              <rect x="48" y="230" width="240" height="50" rx="6" fill="var(--danger-soft)" stroke="var(--danger-line)" stroke-width="1.6"/>
+              <circle cx="62" cy="255" r="4" fill="var(--danger-line)">
+                <animate attributeName="opacity" values="1;0.35;1" dur="1.2s" repeatCount="indefinite"/>
+              </circle>
+              <text x="74" y="248" font-family="ui-monospace, monospace" font-size="9" fill="var(--danger)" font-weight="800">0xab9c5d28</text>
+              <text x="74" y="262" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--danger)">flashLoan · 50,000 WETH</text>
+              <text x="74" y="274" font-family="Inter, system-ui, sans-serif" font-size="9" fill="var(--danger)" font-weight="600" opacity="0.85">target: aave-v3 → sushi → exit</text>
 
-              <!-- arrow down -->
-              <path d="M300 310 L300 360 M290 350 L300 360 L310 350" stroke="var(--blue)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Tx 5: mint -->
+              <rect x="48" y="284" width="240" height="36" rx="6" fill="var(--blue-tint)" stroke="var(--line)" stroke-width="1"/>
+              <text x="58" y="298" font-family="ui-monospace, monospace" font-size="9" fill="var(--soft)" font-weight="600">0x40c10f19</text>
+              <text x="58" y="312" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700" fill="var(--ink)">mint · 250 LP tokens</text>
+              <text x="278" y="305" font-family="ui-monospace, monospace" font-size="9" fill="var(--soft)" text-anchor="end" font-weight="600">11 gwei</text>
 
-              <!-- contract pause card -->
-              <rect x="120" y="380" width="360" height="120" rx="12" fill="var(--ink)"/>
-              <circle cx="158" cy="440" r="22" fill="none" stroke="var(--mint)" stroke-width="2.5"/>
-              <rect x="151" y="430" width="4" height="20" rx="1" fill="var(--mint)"/>
-              <rect x="161" y="430" width="4" height="20" rx="1" fill="var(--mint)"/>
-              <rect x="200" y="412" width="160" height="12" rx="3" fill="var(--white)"/>
-              <rect x="200" y="432" width="240" height="8" rx="2" fill="var(--soft)" opacity="0.7"/>
-              <rect x="200" y="448" width="180" height="8" rx="2" fill="var(--soft)" opacity="0.7"/>
-              <rect x="200" y="468" width="80" height="20" rx="4" fill="var(--mint)"/>
+              <text x="48" y="338" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="500" fill="var(--soft)">+ 242 more pending</text>
+
+              <!-- ── Agent reasoning panel ───────────────────────────── -->
+              <text x="312" y="100" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="800" fill="var(--soft)" letter-spacing="0.10em">CLAUDE · CLASSIFIER</text>
+              <rect x="312" y="110" width="240" height="232" rx="10" fill="var(--blue-tint)" stroke="var(--line)" stroke-width="1"/>
+
+              <text x="324" y="132" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="600" fill="var(--soft)">Attack type</text>
+              <text x="324" y="148" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="800" fill="var(--ink)" letter-spacing="-0.005em">flash_loan_drain</text>
+
+              <text x="324" y="172" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="600" fill="var(--soft)">Suspected attacker</text>
+              <text x="324" y="186" font-family="ui-monospace, monospace" font-size="11" font-weight="700" fill="var(--ink)">0xab9c…5d28</text>
+
+              <text x="324" y="208" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="600" fill="var(--soft)">Estimated loss</text>
+              <text x="324" y="226" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="18" font-weight="800" fill="var(--ink)" letter-spacing="-0.01em">$23.4M</text>
+
+              <text x="324" y="252" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="600" fill="var(--soft)">Confidence</text>
+              <rect x="324" y="260" width="216" height="8" rx="4" fill="var(--line)"/>
+              <rect x="324" y="260" width="188" height="8" rx="4" fill="var(--blue)"/>
+              <text x="540" y="280" font-family="ui-monospace, monospace" font-size="11" font-weight="800" fill="var(--blue)" text-anchor="end">87%</text>
+
+              <!-- Decision pill -->
+              <rect x="324" y="295" width="110" height="26" rx="6" fill="var(--blue)"/>
+              <text x="379" y="312" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--white)" text-anchor="middle">→ PAUSE</text>
+
+              <text x="324" y="334" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="500" fill="var(--soft)">incident report queued</text>
+
+              <!-- ── Connector arrow ─────────────────────────────────── -->
+              <path d="M 300 380 L 300 420 M 292 412 L 300 420 L 308 412" stroke="var(--blue)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+              <!-- ── On-chain pause action card ──────────────────────── -->
+              <rect x="48" y="430" width="504" height="120" rx="12" fill="var(--ink)"/>
+              <!-- pause icon -->
+              <circle cx="92" cy="490" r="22" fill="none" stroke="var(--mint)" stroke-width="2.5"/>
+              <rect x="85" y="480" width="4" height="20" rx="1" fill="var(--mint)"/>
+              <rect x="95" y="480" width="4" height="20" rx="1" fill="var(--mint)"/>
+              <!-- text content -->
+              <text x="132" y="466" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="800" fill="var(--white)">GuardianController.emergencyPause()</text>
+              <text x="132" y="488" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10" font-weight="600" fill="var(--soft)" opacity="0.95">tx 0x9f31…e2c4 · block 6,512,412 · Sepolia</text>
+              <text x="132" y="506" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="600" fill="var(--soft)" opacity="0.85">latency: 1.8s mempool → on-chain</text>
+              <!-- status badge -->
+              <rect x="132" y="516" width="76" height="22" rx="5" fill="var(--mint)"/>
+              <text x="170" y="531" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--ink)" text-anchor="middle">PAUSED</text>
+              <!-- $ saved badge -->
+              <rect x="218" y="516" width="118" height="22" rx="5" fill="none" stroke="var(--mint)" stroke-width="1.2"/>
+              <text x="277" y="531" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--mint)" text-anchor="middle">$23.4M SAFE</text>
             </svg>
           </div>
         </div>

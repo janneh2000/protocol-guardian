@@ -1,8 +1,14 @@
 # Protocol Guardian Agent
 
-> Autonomous AI sentinel for DeFi protocol security. Monitors the Ethereum mempool in real-time, classifies threats using Claude AI, and autonomously calls `pause()` on vulnerable contracts before exploits complete.
+![Protocol Guardian — autonomous on-chain defense for DeFi.](./assets/cover.svg)
 
-Built for **ETHGlobal Open Agents 2026**.
+> Autonomous AI sentinel for DeFi protocol security. Watches the Ethereum mempool in real time, classifies threats with Claude, consults paid threat-intel through a KeeperHub agentic wallet, broadcasts threat fingerprints to a peer-to-peer swarm of Guardians over Gensyn AXL, and autonomously calls `pause()` on vulnerable contracts before exploits complete.
+
+Built for **ETHGlobal Open Agents 2026**. Live on Sepolia.
+
+- 🔗 Live demo · <https://protocol-guardian.vercel.app/dashboard>
+- 🌐 Marketing site · <https://protocol-guardian.vercel.app/>
+- 👤 Founder · [Rivaldo Janneh](https://github.com/janneh2000)
 
 ---
 
@@ -11,47 +17,130 @@ Built for **ETHGlobal Open Agents 2026**.
 | Layer | What happens |
 |---|---|
 | **Ingestion** | Subscribes to Ethereum mempool + blocks via Alchemy WebSocket |
-| **Heuristics** | Fast pattern screening: flash loans, oracle deviations, TVL drains |
+| **Heuristics** | Fast pattern screening: flash loans, oracle deviations, TVL drains, reentrancy, access-control, governance |
 | **AI Reasoning** | Claude classifies the attack type, scores confidence 0–100, decides action |
+| **Paid Intel** *(KeeperHub)* | In the ALERT confidence band (40–74), consults x402-gated threat feeds via `@keeperhub/wallet`'s `paymentSigner`. The Turnkey-custodied wallet auto-pays the 402, gated by KeeperHub's PreToolUse safety hook |
+| **Swarm Sync** *(Gensyn AXL)* | High-confidence detections broadcast a 73-byte threat fingerprint over a local AXL node's `/send` endpoint. Peer Guardians read `/recv` and raise their confidence floor for matching txs |
 | **Action** | Calls `emergencyPause()` on the Guardian contract if confidence ≥ 75% |
+| **Identity** *(ENS)* | The agent operates as `protocol-guardian.eth` on Sepolia. The dashboard reverse-resolves agent + protocol addresses to ENS names live via viem |
 | **Report** | Claude generates a full post-incident security report |
-| **Dashboard** | Live HTML dashboard showing events, confidence scores, and reports |
+| **Dashboard** | Live operator dashboard with events, confidence scores, and reports |
+| **Marketing surface** | Landing, login, team, and get-started pages with light/dark themes, EIP-6963 wallet connect, and an ENS-aware footer |
 
 ---
 
 ## Architecture
 
 ```
-Ethereum Mempool / Blocks
-         │
-         ▼
- BlockchainIngestion       ← web3.py WebSocket subscription
-         │
-         ▼
-  HeuristicsEngine         ← flash loan, oracle, drain pattern checks
-         │  (risk_score ≥ 30 → escalate)
-         ▼
-      AIAgent              ← Claude: classify + confidence + action
-         │
-    ┌────┴────┐
-    │         │
-  PAUSE     ALERT
-    │
-    ▼
-GuardianController.sol     ← onchain: calls protocol.pause()
-    │
-    ▼
-  ReportGenerator          ← Claude: post-incident markdown report
+                                        ┌───────────────────────────┐
+   Ethereum Mempool / Blocks            │   Peer Guardian (AXL)     │
+            │                           │   peer Guardian (AXL)     │
+            ▼                           └─────────▲─────────────────┘
+   BlockchainIngestion                            │ /send /recv (P2P)
+            │                                     │
+            ▼                                     │
+    HeuristicsEngine                       ┌──────┴──────┐
+            │  (risk_score ≥ 30 → escalate)│   AXL Node  │
+            ▼                              │  (gensyn-ai)│
+        AIAgent          ─────► confidence └─────────────┘
+            │            40-74?                  ▲
+            │                  │                 │ broadcast on PAUSE
+            │                  ▼                 │
+            │           KeeperHub bridge ────────┤
+            │           (@keeperhub/wallet —     │
+            │            x402 paid intel)        │
+            │                  │                 │
+            ▼                  │                 │
+       ┌────┴────┐             │                 │
+       │         │◄────────────┘                 │
+     PAUSE     ALERT                             │
+       │                                         │
+       ▼                                         │
+  GuardianController.sol  ──── emergencyPause() ─┘
+       │
+       ▼
+   ReportGenerator             ← Claude post-incident markdown
+       │
+       ▼
+   Dashboard (live HTML)       ← ENS-resolved identity, events, reports
 ```
+
+---
+
+## Public surface
+
+The repo ships a four-page marketing site plus the operator dashboard. Marketing pages share one design system (Inter, blue/mint palette, 9px button radius, 1510px max width, light + dark mode); the dashboard keeps its dark/technical look.
+
+| Path | What it is |
+|---|---|
+| `/` (`index.html`) | Landing — hero illustration of mempool → classifier → on-chain pause flow, what-it-monitors, how-it-works, stats, waitlist |
+| `/get-started` (`get-started.html`) | Onboarding — Connect Wallet (MetaMask + Coinbase via EIP-6963 with ENS reverse-resolve on connect), email waitlist, four-step visual guide |
+| `/login` (`login.html`) | Log-in form, value-prop split layout |
+| `/team` (`team.html`) | Solo-founder team page — bio, stack ownership, contact links |
+| `/dashboard/` (`dashboard/index.html`) | Live operator dashboard (dark) |
+
+Theme management lives in `theme.js` — synchronous, head-loaded, FOUC-safe; reads `localStorage('protoguardian-theme')`, falls back to `prefers-color-scheme`, exposes `window.ProtoGuardianTheme.{get,set,clear}`.
+
+Brand assets in `assets/`:
+
+- `logo.svg`, `logo-dark.svg`, `logo-mono.svg` — primary mark in light/dark/currentColor variants
+- `logo-lockup.svg` — horizontal mark + Protocol Guardian wordmark
+- `cover.svg` — 1200×630 OG / Twitter / GitHub social card
+
+---
+
+## Partner integrations (ETHGlobal Open Agents 2026)
+
+### KeeperHub — paid threat-intel escalation
+
+`agent/keeperhub_intel.mjs` calls `paymentSigner.fetch()` from [`@keeperhub/wallet`](https://github.com/keeperhub/agentic-wallet-skills) against an x402-gated threat-intel endpoint. The wallet auto-pays the 402 challenge with Turnkey-custodied USDC; the PreToolUse safety hook gates anything over the auto-approve floor. Triggered from `agent/ai_agent.py` whenever Claude lands in the ALERT confidence band (40–74).
+
+```python
+# agent/ai_agent.py — confidence 40–74 escalation
+intel = await fetch_paid_intel(selector, target)
+if intel.get("ok"):
+    decision = reconcile_with_intel(decision, intel)
+```
+
+Setup is one shot:
+
+```bash
+npx @keeperhub/wallet skill install   # provisions Turnkey custody + safety hook
+```
+
+### ENS — agent identity + dashboard resolution
+
+`dashboard/ens.js` uses viem to reverse-resolve every address in the dashboard at render time (Sepolia first, mainnet fallback for canonical protocol names). The agent itself runs under `protocol-guardian.eth` with text records for description, GitHub, and project URL.
+
+Register the agent's name on Sepolia in one command:
+
+```bash
+node scripts/register_ens.mjs full
+```
+
+See `scripts/REGISTER_ENS.md` for the step-by-step.
+
+### Gensyn AXL — Guardian swarm
+
+Each Guardian instance runs its own [`gensyn-ai/axl`](https://github.com/gensyn-ai/axl) node. High-confidence detections broadcast a 73-byte threat fingerprint over the local AXL HTTP bridge's `/send` endpoint; peer Guardians poll `/recv` and apply incoming fingerprints to amplify their classifier confidence on matching txs. No centralized broker.
+
+Three-node demo via the bundled compose stack:
+
+```bash
+docker compose -f agent/axl/docker-compose.yml up --build
+```
+
+That brings up `axl-public` (rendezvous, host `:9001` + bridge `:9090`), `axl-alice` (bridge `:9091`), `axl-bob` (bridge `:9092`). Smoke test in `agent/axl/README.md`.
 
 ---
 
 ## Prerequisites
 
 - Python 3.11+
-- Node.js 18+
+- Node.js 20+ (KeeperHub wallet requires Node 20)
+- Docker (for the AXL swarm demo only)
 - Git
-- A funded Sepolia wallet (0.1 ETH minimum — get from [sepoliafaucet.com](https://sepoliafaucet.com/))
+- A funded Sepolia wallet (~0.1 ETH — get from [sepoliafaucet.com](https://sepoliafaucet.com/))
 - Alchemy account (free) — [dashboard.alchemy.com](https://dashboard.alchemy.com)
 - Anthropic API key — [console.anthropic.com](https://console.anthropic.com)
 
@@ -72,7 +161,7 @@ cd protocol-guardian
 npm install
 ```
 
-This installs Hardhat, OpenZeppelin contracts, and the deploy tooling.
+Installs Hardhat, OpenZeppelin contracts, deploy tooling, and the KeeperHub agentic wallet (`@keeperhub/wallet`).
 
 ### Step 3 — Install Python dependencies
 
@@ -94,70 +183,76 @@ Open `.env` and fill in every value:
 # Alchemy — create an app at dashboard.alchemy.com, select Sepolia
 ALCHEMY_WS_RPC=wss://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 ALCHEMY_HTTP_RPC=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Your Sepolia wallet private key (needs 0.1 ETH)
+# Sepolia wallet (needs ~0.1 ETH for deploys + ENS registration)
 DEPLOYER_PRIVATE_KEY=0x...
-
-# For the hackathon, use the same key for the guardian hot wallet
 GUARDIAN_HOT_WALLET_PRIVATE_KEY=0x...
-
-# Run this to get the address from your key:
 # python scripts/get_address.py 0xYOUR_PRIVATE_KEY
 GUARDIAN_HOT_WALLET=0x...
-
-# Same key for attack simulator
 ATTACKER_PRIVATE_KEY=0x...
 
-# Leave these blank for now — filled after Step 5
+# Filled after Step 5
 LENDING_POOL_ADDRESS=
 GUARDIAN_CONTRACT_ADDRESS=
+
+# ENS registration (Step 6) — same key as DEPLOYER is fine for the demo
+GUARDIAN_AGENT_KEY=0x...
+GUARDIAN_ENS_NAME=protocol-guardian
+GUARDIAN_ENS_DESC=Autonomous DeFi security agent — pauses vulnerable contracts in real time.
+GUARDIAN_ENS_GITHUB=janneh2000
+GUARDIAN_ENS_URL=https://protocol-guardian.vercel.app
+
+# AXL swarm (Step 8) — defaults work for the docker-compose demo
+AXL_BASE_URL=http://localhost:9090
+AXL_TOPIC=pg-threats
 ```
 
-> **Security note**: Never commit `.env`. It is in `.gitignore`.
+> **Security note**: Never commit `.env`. It's in `.gitignore`.
 
 ### Step 5 — Compile and deploy contracts
 
 ```bash
-# Compile Solidity
 npx hardhat compile
-
-# Deploy to Sepolia
 npx hardhat run scripts/deploy.js --network sepolia
 ```
 
-Expected output:
-```
-Deploying with account: 0xYourAddress
-Account balance: 0.5 ETH
-
-[1/3] Deploying MockLendingPool...
-MockLendingPool deployed to: 0xAAA...
-
-[2/3] Seeding pool with 0.1 ETH liquidity...
-Pool seeded. Total liquidity: 0.1 ETH
-
-[3/3] Deploying ProtocolGuardian...
-ProtocolGuardian deployed to: 0xBBB...
-
-[4/4] Granting PAUSER_ROLE to ProtocolGuardian...
-PAUSER_ROLE granted.
-
-✅ Deployment complete!
-MockLendingPool:  0xAAA...
-ProtocolGuardian: 0xBBB...
-```
-
-**Copy the two addresses into your `.env`:**
+Copy the two addresses into your `.env`:
 
 ```env
 LENDING_POOL_ADDRESS=0xAAA...
 GUARDIAN_CONTRACT_ADDRESS=0xBBB...
 ```
 
-### Step 6 — Start the guardian agent
+### Step 6 — (Optional) Register the agent's ENS name
+
+```bash
+node scripts/register_ens.mjs check     # availability + price
+node scripts/register_ens.mjs full      # commit, wait 65s, register, set records
+```
+
+After registration the dashboard footer auto-upgrades from `0x2344…12fE` to `protocol-guardian.eth` on the next page load. Full guide: `scripts/REGISTER_ENS.md`.
+
+### Step 7 — (Optional) Provision the KeeperHub wallet
+
+```bash
+npx @keeperhub/wallet skill install
+```
+
+This provisions the Turnkey sub-org wallet and registers the PreToolUse safety hook. The agent will use it whenever Claude lands in the ALERT confidence band.
+
+### Step 8 — (Optional) Spin up the AXL swarm
+
+```bash
+docker compose -f agent/axl/docker-compose.yml up --build
+```
+
+Three AXL nodes peer over TLS. The agent's `broadcast_threat()` and `recv_peer_threats()` automatically use the local bridge at `AXL_BASE_URL` (default `http://localhost:9090`).
+
+### Step 9 — Start the guardian agent
 
 Open **Terminal 1**:
 
@@ -174,30 +269,23 @@ You should see:
 ║  Ingestion  → WebSocket mempool + block stream   ║
 ║  Heuristics → Flash loan, drain, oracle checks   ║
 ║  AI Layer   → Claude threat classification       ║
+║  Paid Intel → @keeperhub/wallet (x402 escalation)║
+║  Swarm      → AXL peer broadcast / receive       ║
 ║  Action     → Onchain emergencyPause()           ║
 ║  Reports    → Auto-generated incident reports    ║
 ╚══════════════════════════════════════════════════╝
-
-INFO guardian.main — Monitoring pool: 0xAAA...
-INFO guardian.ingestion — Connected to Ethereum node via WebSocket
-INFO guardian.ingestion — Subscribed to pending transactions (mempool)
-INFO guardian.ingestion — Subscribed to new blocks
 ```
 
-### Step 7 — Open the dashboard
+### Step 10 — Open the dashboard
 
-In a browser, open:
-```
-dashboard/index.html
-```
-
-Or serve it locally:
 ```bash
 cd dashboard && python3 -m http.server 8080
 # Open: http://localhost:8080
 ```
 
-### Step 8 — Run the attack simulator (DEMO)
+Or visit the deployed dashboard at <https://protocol-guardian.vercel.app/dashboard>.
+
+### Step 11 — Run the attack simulator (DEMO)
 
 Open **Terminal 2**:
 
@@ -206,13 +294,13 @@ source venv/bin/activate
 python scripts/attack_simulator.py
 ```
 
-Watch **Terminal 1** (guardian) respond in real time:
+Watch **Terminal 1** respond:
 
 ```
 INFO  guardian.ingestion — Interesting pending tx: 0xabc123... | flash_loan=True
-INFO  guardian.heuristics — Heuristics [0xabc123]: Detected signals: oracle_price_manipulation, flash_loan_detected. Risk: 65/100
-INFO  guardian.ai_agent — Invoking Claude for tx: 0xabc123...
+INFO  guardian.heuristics — Risk: 65/100 (oracle_price_manipulation, flash_loan_detected)
 INFO  guardian.ai_agent — Decision: PAUSE | flash_loan_price_manipulation | confidence=91%
+INFO  guardian.axl — Broadcast threat fingerprint to swarm: selector=0x... target=0x... confidence=91
 CRITICAL guardian.action — PAUSING PROTOCOL — flash_loan_price_manipulation | confidence=91%
 CRITICAL guardian.action — Pause tx submitted: 0xdef456...
 CRITICAL guardian.action — PROTOCOL PAUSED SUCCESSFULLY. Block: 7234567
@@ -221,8 +309,8 @@ POST-INCIDENT REPORT
 ════════════════════
 Title:     Flash Loan Oracle Manipulation — MockLendingPool
 Severity:  Critical
-Summary:   Attacker exploited oracle price feed to inflate borrow capacity...
 Protected: $42,000
+Signed by: protocol-guardian.eth
 ```
 
 In Terminal 2:
@@ -235,13 +323,11 @@ In Terminal 2:
 
 ## Simulate mode (no real transactions)
 
-To test without spending gas:
-
 ```bash
 python main.py --simulate
 ```
 
-The agent runs the full pipeline (ingestion → heuristics → AI → decision) but skips the onchain `pause()` call. Use this to verify everything is wired correctly before funding the hot wallet.
+Runs the full pipeline (ingestion → heuristics → AI → KeeperHub intel → AXL broadcast → decision) but skips the on-chain `pause()` call. Use this to verify everything is wired before funding the hot wallet.
 
 ---
 
@@ -250,27 +336,52 @@ The agent runs the full pipeline (ingestion → heuristics → AI → decision) 
 ```
 protocol-guardian/
 ├── contracts/
-│   ├── MockLendingPool.sol      # Protocol being monitored (demo target)
-│   └── ProtocolGuardian.sol     # Guardian controller (holds PAUSER_ROLE)
+│   ├── MockLendingPool.sol           # Demo target protocol
+│   └── ProtocolGuardian.sol          # Guardian controller (PAUSER_ROLE)
 ├── scripts/
-│   ├── deploy.js                # Hardhat deployment script
-│   ├── attack_simulator.py      # Demo attack: oracle manipulation + drain
-│   └── get_address.py           # Derive address from private key
+│   ├── deploy.js                     # Hardhat deploy
+│   ├── attack_simulator.py           # Demo attack
+│   ├── get_address.py                # Address from private key
+│   ├── register_ens.mjs              # Sepolia ENS registration (commit/reveal)
+│   └── REGISTER_ENS.md               # ENS registration guide
 ├── agent/
-│   ├── main.py                  # Entry point, orchestrator
-│   ├── ingestion.py             # WebSocket mempool + block subscription
-│   ├── heuristics.py            # Fast pattern screening
-│   ├── ai_agent.py              # Claude reasoning layer
-│   ├── exploit_rag.py           # Historical exploit database (RAG)
-│   ├── action.py                # Onchain execution + alerts
-│   └── report.py                # Post-incident report generator
+│   ├── main.py                       # Entry point, orchestrator
+│   ├── ingestion.py                  # WebSocket mempool + block subscription
+│   ├── heuristics.py                 # Fast pattern screening
+│   ├── ai_agent.py                   # Claude reasoning + KeeperHub + AXL hooks
+│   ├── exploit_rag.py                # Historical exploit RAG
+│   ├── action.py                     # Onchain execution + alerts
+│   ├── report.py                     # Post-incident report generator
+│   ├── keeperhub_intel.mjs           # Node entrypoint — paymentSigner.fetch()
+│   ├── keeperhub_bridge.py           # Python ↔ Node bridge for KeeperHub
+│   └── axl/
+│       ├── swarm_client.py           # AXL HTTP-bridge client + ThreatFingerprint
+│       ├── node-config.public.json   # Listening rendezvous AXL node config
+│       ├── node-config.peer.json     # Peer Guardian AXL node config
+│       ├── Dockerfile                # Builds gensyn-ai/axl from source
+│       ├── entrypoint.sh             # Generates ed25519 key + boots node
+│       ├── docker-compose.yml        # 3-node demo stack
+│       └── README.md                 # AXL run instructions
 ├── dashboard/
-│   └── index.html               # Live event dashboard
-├── abi/                         # Auto-generated after compile
-├── .env.example                 # Environment variable template
-├── requirements.txt             # Python dependencies
-├── package.json                 # Node/Hardhat dependencies
-└── hardhat.config.js            # Hardhat configuration
+│   ├── index.html                    # Live operator dashboard
+│   ├── ens.js                        # viem-based ENS resolver
+│   └── protocol-guardian-dashboard.jsx
+├── assets/
+│   ├── logo.svg                      # Primary mark (light bg)
+│   ├── logo-dark.svg                 # White-shield variant (dark bg)
+│   ├── logo-mono.svg                 # currentColor variant
+│   ├── logo-lockup.svg               # Horizontal mark + wordmark
+│   └── cover.svg                     # 1200×630 OG card
+├── index.html                        # Landing
+├── login.html                        # Log-in page
+├── team.html                         # Founder team page
+├── get-started.html                  # Onboarding (wallet connect + email)
+├── theme.js                          # FOUC-safe theme manager
+├── vercel.json                       # Vercel routing config
+├── .env.example                      # Environment template
+├── requirements.txt                  # Python deps
+├── package.json                      # Node deps (Hardhat + @keeperhub/wallet + viem)
+└── hardhat.config.js                 # Hardhat config
 ```
 
 ---
@@ -283,6 +394,7 @@ The AI layer receives a structured prompt containing:
 2. **Pool state** — liquidity before/after, oracle price before/after
 3. **Heuristics signals** — pre-screened risk factors with severity scores
 4. **RAG context** — 3 most similar historical exploits from DeFiHackLabs database
+5. **Peer signals** — any matching threat fingerprints recently received from AXL peers
 
 Claude returns structured JSON:
 
@@ -293,16 +405,17 @@ Claude returns structured JSON:
   "action": "PAUSE",
   "suspected_attacker": "0xAttackerAddress",
   "estimated_loss_usd": 42000,
-  "rationale": "Transaction exhibits classic flash loan oracle manipulation pattern. Attacker borrowed large ETH position, immediately updated oracle price by 50%, then attempted to borrow against artificially deflated collateral. Pattern matches Mango Markets exploit (Oct 2022, $116M). Pool balance at immediate risk."
+  "rationale": "Transaction exhibits classic flash loan oracle manipulation pattern. Attacker borrowed large ETH position, immediately updated oracle price by 50%, then attempted to borrow against artificially deflated collateral. Pattern matches Mango Markets exploit (Oct 2022, $116M)."
 }
 ```
 
-Action thresholds:
-- **PAUSE** → confidence ≥ 75%
-- **ALERT** → confidence 40–74%
-- **IGNORE** → confidence < 40%
+Confidence-band routing:
 
-The confidence threshold is also enforced **onchain** in `ProtocolGuardian.sol` — a compromised guardian key cannot pause with confidence < 75.
+- **PAUSE** (≥ 75) → broadcast fingerprint to AXL swarm + call `emergencyPause()` on-chain
+- **ALERT** (40–74) → escalate to KeeperHub-paid threat intel; possibly upgrade to PAUSE or downgrade to IGNORE
+- **IGNORE** (< 40) → log and move on
+
+The 75 threshold is also enforced **on-chain** in `ProtocolGuardian.sol` — a compromised guardian key cannot pause with confidence < 75.
 
 ---
 
@@ -315,7 +428,10 @@ The confidence threshold is also enforced **onchain** in `ProtocolGuardian.sol` 
 | Rationale | None | Plain-English explanation |
 | Post-incident report | Manual | Auto-generated by Claude |
 | RAG on past exploits | No | Yes — DeFiHackLabs dataset |
-| Confidence scoring | Binary | 0–100 with threshold enforcement |
+| Confidence scoring | Binary | 0–100 with on-chain threshold enforcement |
+| Paid threat-intel | No | Yes — KeeperHub agentic wallet |
+| Peer-to-peer swarm | No | Yes — Gensyn AXL mesh |
+| Agent identity | None | ENS (`protocol-guardian.eth`) |
 
 ---
 
@@ -324,17 +440,40 @@ The confidence threshold is also enforced **onchain** in `ProtocolGuardian.sol` 
 - Sepolia Etherscan: [sepolia.etherscan.io](https://sepolia.etherscan.io)
 - Sepolia faucet: [sepoliafaucet.com](https://sepoliafaucet.com)
 - Alchemy dashboard: [dashboard.alchemy.com](https://dashboard.alchemy.com)
+- ENS on Sepolia: [app.ens.domains](https://app.ens.domains/) (network selector → Sepolia)
 
 ---
 
 ## Built with
 
 - [Anthropic Claude](https://anthropic.com) — AI threat reasoning
+- [@keeperhub/wallet](https://github.com/keeperhub/agentic-wallet-skills) — agentic wallet for x402 paid threat-intel
+- [gensyn-ai/axl](https://github.com/gensyn-ai/axl) — P2P swarm communication layer
+- [ENS](https://ens.domains) + [viem](https://viem.sh) — agent identity + dashboard resolution
 - [web3.py](https://web3py.readthedocs.io) — Ethereum interaction
 - [Hardhat](https://hardhat.org) — Contract compilation and deployment
 - [OpenZeppelin](https://openzeppelin.com) — Pausable + AccessControl base contracts
 - [Alchemy](https://alchemy.com) — WebSocket mempool subscriptions
 - [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) — Historical exploit dataset
+
+---
+
+## Roadmap
+
+- Pilot cohort: 3–5 DeFi protocols on Sepolia, then a single mainnet pilot
+- Multi-chain: Base, Arbitrum, Optimism, Polygon
+- Swarm scale: dozens of Guardians peering over AXL, each watching a different protocol family
+- Open-source the threat heuristics + Guardian contract framework as public-good infrastructure
+
+Interested in piloting? Email [`cjanneh@gmail.com`](mailto:cjanneh@gmail.com).
+
+---
+
+## Credits
+
+© 2026 Protocol Guardian · Built and led by [Rivaldo Janneh](https://github.com/janneh2000).
+
+Acknowledgments — built on the shoulders of the broader Ethereum developer community whose patterns and tooling make a project like this possible.
 
 ---
 

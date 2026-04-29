@@ -45,8 +45,6 @@
       --shadow-md: 0 4px 14px rgba(7, 18, 51, 0.06), 0 2px 4px rgba(7, 18, 51, 0.04);
       --shadow-lg: 0 18px 50px rgba(7, 18, 51, 0.10), 0 6px 16px rgba(7, 18, 51, 0.05);
       --shadow-cta: 0 12px 30px rgba(79, 70, 245, 0.30);
-      --hero-mask: rgba(7, 18, 51, 0.04);
-      --hero-illu-mode: multiply;
 
       /* Semantic threat colors used by the hero illustration's malicious-tx row. */
       --danger: #dc2626;
@@ -56,6 +54,7 @@
       /* Inverted CTA card — same dark scheme in both themes by design. */
       --inv-bg: #071233;
       --inv-fg: #ffffff;
+      --inv-muted: rgba(255, 255, 255, 0.62);
       --inv-line: rgba(255, 255, 255, 0.20);
       --inv-overlay-soft: rgba(255, 255, 255, 0.06);
       --inv-overlay-strong: rgba(255, 255, 255, 0.10);
@@ -64,7 +63,6 @@
       --inv-glow-mint-soft: rgba(39, 214, 196, 0.18);
       --pulse-mint-on: rgba(39, 214, 196, 0.6);
       --pulse-mint-off: rgba(39, 214, 196, 0);
-      --mask-opaque: #000;
     }
 
     :root[data-theme="dark"] {
@@ -87,8 +85,6 @@
       --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.50), 0 2px 4px rgba(0, 0, 0, 0.35);
       --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.55), 0 6px 16px rgba(0, 0, 0, 0.40);
       --shadow-cta: 0 12px 30px rgba(124, 117, 255, 0.45);
-      --hero-mask: rgba(255, 255, 255, 0.04);
-      --hero-illu-mode: normal;
 
       /* Semantic threat colors — dark-mode variants. */
       --danger: #f87171;
@@ -98,6 +94,7 @@
       /* Inverted CTA card stays the same in dark mode — fixed dark scheme. */
       --inv-bg: #071233;
       --inv-fg: #ffffff;
+      --inv-muted: rgba(255, 255, 255, 0.62);
       --inv-line: rgba(255, 255, 255, 0.20);
       --inv-overlay-soft: rgba(255, 255, 255, 0.06);
       --inv-overlay-strong: rgba(255, 255, 255, 0.10);
@@ -106,7 +103,6 @@
       --inv-glow-mint-soft: rgba(39, 214, 196, 0.18);
       --pulse-mint-on: rgba(39, 214, 196, 0.6);
       --pulse-mint-off: rgba(39, 214, 196, 0);
-      --mask-opaque: #000;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -295,16 +291,10 @@
     .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
     .hero-cta .btn { height: 52px; padding: 0 26px; font-size: 15px; }
 
-    /* Hero illustration: minimal "monitor" diagram */
+    /* Hero illustration: live mempool → classifier → on-chain action mockup */
     .hero-illu {
       position: relative;
-      aspect-ratio: 1 / 0.95;
-      mix-blend-mode: var(--hero-illu-mode);
-    }
-    :root[data-theme="dark"] .hero-illu {
-      filter: brightness(1.05) contrast(0.95);
-      mask-image: radial-gradient(circle at 50% 50%, var(--mask-opaque) 58%, transparent 72%);
-      -webkit-mask-image: radial-gradient(circle at 50% 50%, var(--mask-opaque) 58%, transparent 72%);
+      aspect-ratio: 1 / 1;
     }
     .hero-illu svg { width: 100%; height: 100%; display: block; }
 
@@ -674,26 +664,26 @@
 
               <!-- Decision pill -->
               <rect x="324" y="295" width="110" height="26" rx="6" fill="var(--blue)"/>
-              <text x="379" y="312" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--white)" text-anchor="middle">→ PAUSE</text>
+              <text x="379" y="312" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--inv-fg)" text-anchor="middle">→ PAUSE</text>
 
               <text x="324" y="334" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="500" fill="var(--soft)">incident report queued</text>
 
               <!-- ── Connector arrow ─────────────────────────────────── -->
               <path d="M 300 380 L 300 420 M 292 412 L 300 420 L 308 412" stroke="var(--blue)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 
-              <!-- ── On-chain pause action card ──────────────────────── -->
-              <rect x="48" y="430" width="504" height="120" rx="12" fill="var(--ink)"/>
+              <!-- ── On-chain pause action card (fixed dark in both themes) ── -->
+              <rect x="48" y="430" width="504" height="120" rx="12" fill="var(--inv-bg)"/>
               <!-- pause icon -->
               <circle cx="92" cy="490" r="22" fill="none" stroke="var(--mint)" stroke-width="2.5"/>
               <rect x="85" y="480" width="4" height="20" rx="1" fill="var(--mint)"/>
               <rect x="95" y="480" width="4" height="20" rx="1" fill="var(--mint)"/>
               <!-- text content -->
-              <text x="132" y="466" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="800" fill="var(--white)">GuardianController.emergencyPause()</text>
-              <text x="132" y="488" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10" font-weight="600" fill="var(--soft)" opacity="0.95">tx 0x9f31…e2c4 · block 6,512,412 · Sepolia</text>
-              <text x="132" y="506" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="600" fill="var(--soft)" opacity="0.85">latency: 1.8s mempool → on-chain</text>
+              <text x="132" y="466" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="800" fill="var(--inv-fg)">GuardianController.emergencyPause()</text>
+              <text x="132" y="488" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10" font-weight="600" fill="var(--inv-muted)">tx 0x9f31…e2c4 · block 6,512,412 · Sepolia</text>
+              <text x="132" y="506" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="600" fill="var(--inv-muted)">latency: 1.8s mempool → on-chain</text>
               <!-- status badge -->
               <rect x="132" y="516" width="76" height="22" rx="5" fill="var(--mint)"/>
-              <text x="170" y="531" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--ink)" text-anchor="middle">PAUSED</text>
+              <text x="170" y="531" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--inv-bg)" text-anchor="middle">PAUSED</text>
               <!-- $ saved badge -->
               <rect x="218" y="516" width="118" height="22" rx="5" fill="none" stroke="var(--mint)" stroke-width="1.2"/>
               <text x="277" y="531" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="var(--mint)" text-anchor="middle">$23.4M SAFE</text>

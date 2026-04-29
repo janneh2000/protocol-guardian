@@ -5,7 +5,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.js --network sepolia",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "verify": "python3 scripts/smoke_test.py"
   },
   "devDependencies": {
     "@ethersproject/providers": "^5.4.7",

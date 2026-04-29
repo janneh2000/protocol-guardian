@@ -173,6 +173,30 @@ That brings up `axl-public` (rendezvous, host `:9001` + bridge `:9090`), `axl-al
 
 ## Step-by-step setup
 
+### Step 0 — Quick verify (30 seconds, no API keys needed)
+
+If you just want to confirm the repo is sound — every page parses, every
+script syntax-checks, every integration is wired — run the no-secrets
+smoke test. No `.env`, no funded wallet, no Docker, no API keys
+required:
+
+```bash
+git clone https://github.com/janneh2000/protocol-guardian.git
+cd protocol-guardian
+npm install
+python3 -m pip install -r requirements.txt
+make verify       # or: npm run verify
+```
+
+You should see `18/18 passed`. This validates every HTML page, every
+Python module, every Node script, every SVG asset, every JSON config,
+and that the AXL fingerprint round-trips bit-exact, the KeeperHub
+bridge degrades gracefully when no wallet is provisioned, and all four
+integration hooks are wired into `agent/ai_agent.py::analyse()`.
+
+For full runtime verification (Sepolia, Claude classifier, AXL swarm,
+KeeperHub x402, ENS registration), continue through Steps 1–11 below.
+
 ### Step 1 — Clone the repo
 
 ```bash
